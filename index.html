@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BioVisualizer — Bipartite Paper Map</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <!-- D3 and plugins via CDN -->
+  <script src="https://unpkg.com/d3@7/dist/d3.min.js"></script>
+  <script src="https://unpkg.com/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
+  <!-- SheetJS for parsing Excel in browser -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <header class="app-header">
+    <h1>BioVisualizer</h1>
+    <p class="subtitle">Explore how methods relate to questions across papers</p>
+  </header>
+
+  <section class="controls">
+    <div class="control-row">
+      <label for="fileInput" class="control-label">Data file (.xlsx)</label>
+      <input type="file" id="fileInput" accept=".xlsx,.xls" />
+      <button id="reloadBtn" class="btn" title="Try loading init_data.xlsx from this repo">Load init_data.xlsx</button>
+      <span id="loadStatus" class="status"></span>
+    </div>
+
+    <div class="control-row">
+      <label for="sourceSelect" class="control-label">Source column</label>
+      <select id="sourceSelect" disabled></select>
+
+      <label for="targetSelect" class="control-label">Target column</label>
+      <select id="targetSelect" disabled></select>
+
+      <button id="renderBtn" class="btn primary" disabled>Render</button>
+    </div>
+
+    <div class="control-row">
+      <label class="toggle"><input type="checkbox" id="toggleRefNums" /> Show reference numbers on edges</label>
+      <label class="toggle"><input type="checkbox" id="toggleCounts" checked/> Show edge counts</label>
+    </div>
+  </section>
+
+  <main class="viz-area">
+    <div id="chart"></div>
+    <div id="tooltip" class="tooltip" style="opacity:0"></div>
+  </main>
+
+  <section class="references">
+    <h2>Sources</h2>
+    <p class="hint">Each paper is assigned a reference number starting at 1. These numbers can be shown on edges above the links.</p>
+    <ol id="refList"></ol>
+  </section>
+
+  <footer class="app-footer">
+    <span>© <span id="year"></span> BioVisualizer</span>
+  </footer>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+* { box-sizing: border-box; }
+:root {
+  --bg: #0b1220;
+  --panel: #0f172a;
+  --panel-2: #111827;
+  --text: #e5e7eb;
+  --muted: #94a3b8;
+  --accent: #60a5fa;
+  --accent-2: #34d399;
+  --border: #1f2937;
+  --danger: #ef4444;
+}
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  background: radial-gradient(1200px 600px at 10% 0%, #0c162c 0%, var(--bg) 40%);
+  color: var(--text);
+}
+
+.app-header {
+  padding: 16px 24px 0 24px;
+}
+.app-header h1 { margin: 0; font-size: 24px; letter-spacing: 0.3px; }
+.subtitle { margin: 4px 0 8px 0; color: var(--muted); }
+
+.controls {
+  display: grid;
+  gap: 10px;
+  padding: 12px 24px 16px 24px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+  border-bottom: 1px solid var(--border);
+}
+.control-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.control-label { color: var(--muted); font-size: 14px; }
+select, input[type="file"] {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 6px 8px;
+  border-radius: 8px;
+}
+.btn {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.btn.primary { background: linear-gradient(90deg, var(--accent), var(--accent-2)); border: none; color: #03111f; font-weight: 600; }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.toggle { display: inline-flex; align-items: center; gap: 8px; }
+.status { color: var(--muted); font-size: 12px; }
+
+.viz-area { padding: 12px 12px 0 12px; }
+#chart {
+  width: 100%;
+  height: 64vh;
+  min-height: 420px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+}
+svg { display: block; width: 100%; height: 100%; }
+
+.node rect {
+  fill: #1f2937;
+  stroke: #374151;
+  rx: 6px; ry: 6px;
+}
+.node text { font-size: 12px; fill: var(--text); dominant-baseline: middle; }
+
+.link {
+  fill: none;
+  stroke-opacity: 0.85;
+}
+.link:hover { stroke-opacity: 1; }
+
+.link-label { fill: #e2e8f0; font-size: 11px; paint-order: stroke; stroke: rgba(3,17,31,0.5); stroke-width: 2px; }
+
+.tooltip {
+  position: absolute;
+  background: #111827;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 8px;
+  border-radius: 8px;
+  pointer-events: none;
+  font-size: 12px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+}
+
+.references { padding: 8px 24px 24px 24px; }
+.references h2 { margin-top: 8px; }
+.hint { color: var(--muted); font-size: 13px; }
+#refList { line-height: 1.4; }
+
+.app-footer { padding: 10px 24px 24px 24px; color: var(--muted); font-size: 12px; }
