@@ -1,20 +1,21 @@
 * { box-sizing: border-box; }
 :root {
-  --bg: #0b1220;
-  --panel: #0f172a;
-  --panel-2: #111827;
-  --text: #e5e7eb;
-  --muted: #94a3b8;
-  --accent: #60a5fa;
-  --accent-2: #34d399;
-  --border: #1f2937;
-  --danger: #ef4444;
+  /* Earthy fall theme */
+  --bg: #0a1a1f;         /* deep teal black */
+  --panel: #0f2530;      /* teal panel */
+  --panel-2: #102a33;    /* darker panel */
+  --text: #f2f5f7;       /* near-white */
+  --muted: #b6c2ca;      /* soft gray-blue */
+  --accent: #fb8b24;     /* orange */
+  --accent-2: #e36414;   /* burnt orange */
+  --border: #18333d;     /* teal border */
+  --danger: #d9534f;
 }
 html, body { height: 100%; }
 body {
   margin: 0;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-  background: radial-gradient(1200px 600px at 10% 0%, #0c162c 0%, var(--bg) 40%);
+  background: #0f4c5c; /* solid background as requested */
   color: var(--text);
 }
 
@@ -48,7 +49,7 @@ select, input[type="file"] {
   border-radius: 10px;
   cursor: pointer;
 }
-.btn.primary { background: linear-gradient(90deg, var(--accent), var(--accent-2)); border: none; color: #03111f; font-weight: 600; }
+.btn.primary { background: linear-gradient(90deg, var(--accent), var(--accent-2)); border: none; color: #1a0f04; font-weight: 600; }
 .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .toggle { display: inline-flex; align-items: center; gap: 8px; }
@@ -68,19 +69,24 @@ select, input[type="file"] {
 svg { display: block; width: 100%; height: 100%; }
 
 .node rect {
-  fill: #1f2937;
-  stroke: #374151;
   rx: 6px; ry: 6px;
 }
-.node text { font-size: 12px; fill: var(--text); dominant-baseline: middle; }
+.node text { font-size: 14px; fill: var(--text); dominant-baseline: middle; }
+.node { cursor: ns-resize; }
 
 .link {
   fill: none;
-  stroke-opacity: 0.85;
+  stroke-opacity: 1;
 }
 .link:hover { stroke-opacity: 1; }
 
-.link-label { fill: #e2e8f0; font-size: 11px; paint-order: stroke; stroke: rgba(3,17,31,0.5); stroke-width: 2px; }
+.link-label { fill: #ffffff; font-size: 13px; dominant-baseline: middle; }
+.ref-token { cursor: pointer; }
+
+#refList li.active-ref {
+  color: #e36414;
+  font-weight: 600;
+}
 
 .tooltip {
   position: absolute;

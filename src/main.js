@@ -5,46 +5,28 @@ const state = {
   columns: [],
   sourceCol: null,
   targetCol: null,
-  showRefNums: false,
-  showCounts: true,
+  showRefNums: true,
 };
 
 const els = {
-  fileInput: document.getElementById('fileInput'),
-  reloadBtn: document.getElementById('reloadBtn'),
-  loadStatus: document.getElementById('loadStatus'),
   sourceSelect: document.getElementById('sourceSelect'),
   targetSelect: document.getElementById('targetSelect'),
-  renderBtn: document.getElementById('renderBtn'),
   chart: document.getElementById('chart'),
   refList: document.getElementById('refList'),
   toggleRefNums: document.getElementById('toggleRefNums'),
-  toggleCounts: document.getElementById('toggleCounts'),
   year: document.getElementById('year'),
 };
 
 els.year.textContent = new Date().getFullYear();
 
 // Wire controls
-els.fileInput.addEventListener('change', async (e) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
-  els.loadStatus.textContent = `Reading ${file.name}…`;
-  try {
-    const rows = await readExcelFile(file);
-    onDataLoaded(rows, `${file.name} loaded`);
-  } catch (err) {
-    console.error(err);
-    els.loadStatus.textContent = `Failed to read file: ${err.message || err}`;
-  }
-});
 
-els.reloadBtn.addEventListener('click', async () => {
-  await tryLoadBuiltin();
-});
-
-els.renderBtn.addEventListener('click', () => {
+els.sourceSelect.addEventListener('change', () => {
   state.sourceCol = els.sourceSelect.value;
+  renderAll();
+});
+
+els.targetSelect.addEventListener('change', () => {
   state.targetCol = els.targetSelect.value;
   renderAll();
 });
@@ -54,10 +36,7 @@ els.toggleRefNums.addEventListener('change', () => {
   renderAll();
 });
 
-els.toggleCounts.addEventListener('change', () => {
-  state.showCounts = els.toggleCounts.checked;
-  renderAll();
-});
+// Edge counts feature removed; no handler needed.
 
 window.addEventListener('resize', () => {
   // Debounce resize re-render
@@ -69,8 +48,7 @@ window.addEventListener('resize', () => {
 tryLoadBuiltin();
 
 async function tryLoadBuiltin() {
-  els.loadStatus.textContent = 'Loading init_data.xlsx…';
-  const paths = ['./init_data.xlsx', './data/init_data.xlsx'];
+  const paths = ['./data.xlsx', './init_data.xlsx', './data/data.xlsx'];
   for (const p of paths) {
     try {
       const res = await fetch(p);
@@ -79,28 +57,31 @@ async function tryLoadBuiltin() {
       const wb = XLSX.read(buf, { type: 'array' });
       const wsName = wb.SheetNames[0];
       const rows = XLSX.utils.sheet_to_json(wb.Sheets[wsName], { defval: '' });
-      onDataLoaded(rows, `Loaded ${p}`);
+      onDataLoaded(rows);
       return;
     } catch (e) {
       // try next path
     }
   }
-  els.loadStatus.textContent = 'No built-in init_data.xlsx found. Please upload a file.';
+  // If no dataset found, show a neutral placeholder without naming files
+  els.chart.innerHTML = placeholder('No dataset found. Add a .xlsx file to the repository and reload.');
 }
 
-function onDataLoaded(rows, statusText = 'Data loaded') {
+function onDataLoaded(rows) {
   state.rows = rows;
   state.columns = inferColumns(rows);
-  els.loadStatus.textContent = `${statusText} (${rows.length} rows, ${state.columns.length} columns)`;
-  populateSelect(els.sourceSelect, state.columns);
-  populateSelect(els.targetSelect, state.columns);
+  const selectable = filterSelectableColumns(state.columns);
+  populateSelect(els.sourceSelect, selectable);
+  populateSelect(els.targetSelect, selectable);
   els.sourceSelect.disabled = false;
   els.targetSelect.disabled = false;
-  els.renderBtn.disabled = false;
+  // Reflect default toggle state in UI
+  if (els.toggleRefNums) els.toggleRefNums.checked = state.showRefNums;
 
-  // Default to first two columns if present
-  state.sourceCol = state.columns[0] || null;
-  state.targetCol = state.columns[1] || null;
+  // Choose more interesting defaults if available (e.g., Stage in gastrulation → 1D/2D/3D)
+  const [defSrc, defTgt] = chooseDefaultColumns(selectable);
+  state.sourceCol = defSrc || selectable[0] || null;
+  state.targetCol = defTgt || selectable[1] || null;
   if (state.sourceCol) els.sourceSelect.value = state.sourceCol;
   if (state.targetCol) els.targetSelect.value = state.targetCol;
 
@@ -111,7 +92,7 @@ function onDataLoaded(rows, statusText = 'Data loaded') {
 
 function renderAll() {
   if (!state.rows.length || !state.sourceCol || !state.targetCol) {
-    els.chart.innerHTML = placeholder('Load data and select columns to render.');
+    els.chart.innerHTML = placeholder('Select source and target columns to visualize.');
     return;
   }
 
@@ -119,7 +100,6 @@ function renderAll() {
     sourceCol: state.sourceCol,
     targetCol: state.targetCol,
     showRefNums: state.showRefNums,
-    showCounts: state.showCounts,
   });
 }
 
@@ -137,7 +117,7 @@ function populateSelect(selectEl, options) {
   selectEl.innerHTML = '';
   for (const opt of options) {
     const o = document.createElement('option');
-    o.value = opt; o.textContent = opt;
+    o.value = opt; o.textContent = formatColumnLabel(opt);
     selectEl.appendChild(o);
   }
 }
@@ -145,30 +125,71 @@ function populateSelect(selectEl, options) {
 function renderRefList(rows) {
   els.refList.innerHTML = '';
   const titleKey = preferKey(rows, ['Title', 'Paper', 'Reference', 'Citation', 'Name']);
-  const authorKey = preferKey(rows, ['Authors', 'Author', 'First Author']);
-  const yearKey = preferKey(rows, ['Year', 'Date']);
+  const authorKey = preferKey(rows, ['Authors', 'Author', 'First Author', 'PI', 'Principal Investigator']);
+  const yearKey = preferKey(rows, ['Year', 'Date', 'Publication Year', 'Year Published']);
 
   rows.forEach((row, idx) => {
     const li = document.createElement('li');
-    const num = idx + 1;
-    const title = (row[titleKey] ?? '').toString().trim();
-    const author = (row[authorKey] ?? '').toString().trim();
-    const year = (row[yearKey] ?? '').toString().trim();
+    let title = coerceStr(row[titleKey]);
+    let author = coerceStr(row[authorKey]);
+    let year = coerceStr(row[yearKey]);
 
-    const fallback = Object.entries(row)
-      .slice(0, 4)
-      .map(([k, v]) => `${k}: ${String(v).trim()}`)
-      .join(' | ');
+    // Cleanups
+    author = author.replace(/^\s*(?:PI\s*:\s*)/i, '').trim();
+    if (!isYearStr(year)) year = '';
+    if (!isMeaningful(author)) author = '';
+    if (!isMeaningful(title)) title = '';
 
-    li.textContent = title || author || year ? `${title}${title && author ? ' — ' : ''}${author}${year ? ` (${year})` : ''}` : fallback;
+    // If Authors contains multiple names, pick the first
+    if (author.includes(';') || author.includes(',')) {
+      const first = author.split(/[;,]/)[0].trim();
+      if (isMeaningful(first)) author = first;
+    }
+
+    // Fallbacks: if nothing meaningful, attempt to derive from first few fields
+    if (!author || !title) {
+      const entries = Object.entries(row)
+        .filter(([k, v]) => k !== undefined && k !== null)
+        .map(([k, v]) => coerceStr(v))
+        .filter(v => isMeaningful(v));
+      if (!author && entries.length) author = entries[0];
+      if (!title && entries.length > 1) title = entries[1];
+      if (!year) {
+        const y = entries.find(isYearStr) || '';
+        if (y) year = y;
+      }
+    }
+
+    const fields = [author, title, year].filter(Boolean);
+    li.textContent = fields.join(', ').trim();
     els.refList.appendChild(li);
   });
+
+  // If nothing rendered (unexpected), show a minimal note to aid debugging
+  if (!els.refList.children.length) {
+    const li = document.createElement('li');
+    li.textContent = 'No sources found in dataset.';
+    els.refList.appendChild(li);
+  }
 }
 
 function preferKey(rows, candidates) {
   if (!rows.length) return undefined;
   const keys = Object.keys(rows[0] || {});
-  for (const c of candidates) if (keys.includes(c)) return c;
+  if (!keys.length) return undefined;
+  // Exact (case-insensitive)
+  const lowerMap = new Map(keys.map(k => [k.toLowerCase(), k]));
+  for (const c of candidates) {
+    const k = lowerMap.get(String(c).toLowerCase());
+    if (k) return k;
+  }
+  // Fuzzy includes (case-insensitive)
+  const lowers = keys.map(k => k.toLowerCase());
+  for (const c of candidates) {
+    const cl = String(c).toLowerCase();
+    const idx = lowers.findIndex(k => k.includes(cl));
+    if (idx !== -1) return keys[idx];
+  }
   return undefined;
 }
 
@@ -179,4 +200,69 @@ async function readExcelFile(file) {
   const ws = wb.Sheets[wsName];
   const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
   return rows;
+}
+
+function coerceStr(v) {
+  if (v === null || v === undefined) return '';
+  return String(v).trim();
+}
+
+function isYearStr(v) {
+  return /^\d{4}$/.test(String(v).trim());
+}
+
+function isMeaningful(v) {
+  const t = String(v || '').trim();
+  if (!t) return false;
+  if (/^\d+$/.test(t)) return false; // pure numbers are not meaningful for author/title
+  // ignore very short tokens
+  return t.replace(/[^A-Za-z]+/g, '').length >= 2;
+}
+
+// Filter out numbering/id columns from dropdowns
+function filterSelectableColumns(columns){
+  return (columns || []).filter(c => !isArticleNumberColumn(c));
+}
+
+function isArticleNumberColumn(name){
+  const n = String(name || '').toLowerCase().trim();
+  const bads = [
+    'article number','articlenumber','article no','article #','article id',
+    'reference number','ref number','refno','ref id','reference id',
+    'id','number','index','row','row id','rowid','paper id'
+  ];
+  return bads.some(b => n === b || n.includes(b));
+}
+
+// Display helper for dropdown labels: strip leading numbers and capitalize first letter
+function formatColumnLabel(name){
+  let s = String(name || '');
+  // Remove leading numbering like "1.", "2)", "3-", "4:"
+  s = s.replace(/^\s*\d+\s*[\.\-\):]\s*/,'');
+  s = s.replace(/_/g,' ').trim();
+  if (!s) return '';
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+// Pick defaults: prefer a source containing both 'stage' and 'gastrulation', and a target mentioning 1D/2D/3D or dimensionality
+function chooseDefaultColumns(columns){
+  if (!columns || !columns.length) return [null, null];
+  const lowers = columns.map(c => (c || '').toString().toLowerCase());
+  const findIndex = (pred) => lowers.findIndex(pred);
+  const hasAny = (...subs) => (k) => subs.some(sub => k.includes(sub));
+
+  let srcIdx = findIndex(k => k.includes('stage') && k.includes('gastrulation'));
+  if (srcIdx === -1) srcIdx = findIndex(k => k.includes('stage in gastrulation'));
+
+  let tgtIdx = findIndex(hasAny('1d','2d','3d','dimensional','dimension'));
+
+  if (srcIdx === -1 && tgtIdx === -1) return [columns[0] || null, columns[1] || null];
+  if (srcIdx === -1) srcIdx = lowers.findIndex((_, i) => i !== tgtIdx);
+  if (tgtIdx === -1) tgtIdx = lowers.findIndex((_, i) => i !== srcIdx);
+  if (srcIdx === -1 || tgtIdx === -1) return [columns[0] || null, columns[1] || null];
+  if (srcIdx === tgtIdx) {
+    const alt = lowers.findIndex((_, i) => i !== srcIdx);
+    if (alt !== -1) tgtIdx = alt;
+  }
+  return [columns[srcIdx], columns[tgtIdx]];
 }

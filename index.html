@@ -19,25 +19,15 @@
 
   <section class="controls">
     <div class="control-row">
-      <label for="fileInput" class="control-label">Data file (.xlsx)</label>
-      <input type="file" id="fileInput" accept=".xlsx,.xls" />
-      <button id="reloadBtn" class="btn" title="Try loading init_data.xlsx from this repo">Load init_data.xlsx</button>
-      <span id="loadStatus" class="status"></span>
-    </div>
-
-    <div class="control-row">
       <label for="sourceSelect" class="control-label">Source column</label>
       <select id="sourceSelect" disabled></select>
 
       <label for="targetSelect" class="control-label">Target column</label>
       <select id="targetSelect" disabled></select>
-
-      <button id="renderBtn" class="btn primary" disabled>Render</button>
     </div>
 
     <div class="control-row">
-      <label class="toggle"><input type="checkbox" id="toggleRefNums" /> Show reference numbers on edges</label>
-      <label class="toggle"><input type="checkbox" id="toggleCounts" checked/> Show edge counts</label>
+      <label class="toggle"><input type="checkbox" id="toggleRefNums" checked/> Show reference numbers on edges</label>
     </div>
   </section>
 
@@ -48,7 +38,6 @@
 
   <section class="references">
     <h2>Sources</h2>
-    <p class="hint">Each paper is assigned a reference number starting at 1. These numbers can be shown on edges above the links.</p>
     <ol id="refList"></ol>
   </section>
 
