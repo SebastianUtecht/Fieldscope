@@ -14,6 +14,8 @@ const els = {
   chart: document.getElementById('chart'),
   refList: document.getElementById('refList'),
   toggleRefNums: document.getElementById('toggleRefNums'),
+  uploadBtn: document.getElementById('uploadBtn'),
+  hiddenFileInput: document.getElementById('hiddenFileInput'),
   year: document.getElementById('year'),
 };
 
@@ -35,6 +37,26 @@ els.toggleRefNums.addEventListener('change', () => {
   state.showRefNums = els.toggleRefNums.checked;
   renderAll();
 });
+
+// Upload button and hidden file input
+if (els.uploadBtn && els.hiddenFileInput) {
+  els.uploadBtn.addEventListener('click', () => {
+    els.hiddenFileInput.click();
+  });
+  els.hiddenFileInput.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const rows = await readExcelFile(file);
+      onDataLoaded(rows);
+    } catch (err) {
+      console.error('Failed to read uploaded file:', err);
+    } finally {
+      // allow re-selecting the same file later
+      e.target.value = '';
+    }
+  });
+}
 
 // Edge counts feature removed; no handler needed.
 
